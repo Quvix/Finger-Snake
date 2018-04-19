@@ -223,7 +223,6 @@ function MenuButton() {
     const START_HEIGHT = 100;
     const FONT_SIZE = 32;
     this.text = "UNDEFINED";
-    let x = windowWidth / 2;
     this.level = -1;
 
     this.draw = function() {
@@ -232,10 +231,14 @@ function MenuButton() {
         textAlign(CENTER);
         textSize(FONT_SIZE);
         fill(128);
-        text(this.text, x, this.getHeight());
+        text(this.text, this.getX(), this.getY());
     };
 
-    this.getHeight = function() {
+    this.getY = function() {
         return START_HEIGHT + this.level * SPACE_HEIGHT;
+    };
+
+    this.getX = function() {
+        return windowWidth / 2;
     };
 }
