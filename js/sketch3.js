@@ -220,17 +220,20 @@ function MenuButton() {
     const SPACE_HEIGHT = 50;
     const START_HEIGHT = 100;
     this.text = "UNDEFINED";
-    let x = windowWidth / 2;
     this.level = -1;
 
     this.draw = function() {
         textAlign(CENTER);
         textSize(32);
         fill(128);
-        text(this.text, x, this.getHeight());
+        text(this.text, this.getX(), this.getY());
     };
 
-    this.getHeight = function() {
+    this.getY = function() {
         return START_HEIGHT + this.level * SPACE_HEIGHT;
+    };
+
+    this.getX = function() {
+        return windowWidth / 2;
     };
 }
