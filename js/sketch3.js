@@ -29,6 +29,7 @@ function windowResized() {
 }
 
 function draw() {
+    clear();
     if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || debug) {
         if(windowHeight <= windowWidth) {
             if(isFullscreen()) {
@@ -131,8 +132,8 @@ function GameStateManager() {
     this.activeState = undefined;
 
     this.init = function() {
-        this.states['menu'] = new MenuState();
         this.states['play'] = new PlayState();
+        this.states['menu'] = new MenuState();
     };
 
     this.draw = function() {
@@ -155,10 +156,16 @@ function MenuState() {
 
     let btn1 = new MenuButton();
     btn1.text = "START GAME";
+    btn1.action = function() {
+        gsm.changeState('play', true);
+    };
     this.menu.addButton(btn1);
 
     let btn2 = new MenuButton();
     btn2.text = "DAVID JE MOCKAAAAAAAA";
+    btn2.action = function() {
+        gsm.changeState('menu', true);
+    };
     this.menu.addButton(btn2);
 
     this.init = function() {
@@ -217,21 +224,26 @@ function Menu() {
 }
 
 function MenuButton() {
-    const WIDTH = 200;
+    const WIDTH = windowWidth * 0.8;
     const HEIGHT = 50;
-    const SPACE_HEIGHT = 50;
+    const SPACE_HEIGHT = 100;
     const START_HEIGHT = 100;
     const FONT_SIZE = 32;
     this.text = "UNDEFINED";
     this.level = -1;
 
     this.draw = function() {
-        fill(255);
-        rect(windowWidth / 2 - WIDTH / 2, this.getHeight() - FONT_SIZE / 2 - HEIGHT / 2, WIDTH, HEIGHT);
-        textAlign(CENTER);
-        textSize(FONT_SIZE);
-        fill(128);
-        text(this.text, this.getX(), this.getY());
+        let r = this.getRect();
+        if(mouseIsPressed && collidePointRect(mouseX, mouseY, r.x, r.y, r.width, r.height)) {
+            this.action();
+        } else {
+            fill(0);
+            rect(r.x, r.y, r.width, r.height);
+            textAlign(CENTER);
+            textSize(FONT_SIZE);
+            fill(255);
+            text(this.text, this.getX(), this.getY());
+        }
     };
 
     this.getY = function() {
@@ -240,5 +252,14 @@ function MenuButton() {
 
     this.getX = function() {
         return windowWidth / 2;
+    };
+
+    this.getRect = function() {
+        return {
+            x: windowWidth / 2 - WIDTH / 2,
+            y: this.getY() - FONT_SIZE / 3 - HEIGHT / 2,
+            width: WIDTH,
+            height: HEIGHT
+        };
     };
 }
