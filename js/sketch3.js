@@ -217,15 +217,20 @@ function Menu() {
 }
 
 function MenuButton() {
+    const WIDTH = 200;
+    const HEIGHT = 50;
     const SPACE_HEIGHT = 50;
     const START_HEIGHT = 100;
+    const FONT_SIZE = 32;
     this.text = "UNDEFINED";
     let x = windowWidth / 2;
     this.level = -1;
 
     this.draw = function() {
+        fill(255);
+        rect(windowWidth / 2 - WIDTH / 2, this.getHeight() - FONT_SIZE / 2 - HEIGHT / 2, WIDTH, HEIGHT);
         textAlign(CENTER);
-        textSize(32);
+        textSize(FONT_SIZE);
         fill(128);
         text(this.text, x, this.getHeight());
     };
