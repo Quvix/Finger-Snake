@@ -225,6 +225,9 @@ function MenuSettingsState() {
             })
         );
         this.menu.addButton(
+            new Slider(255, config.color.R)
+        );
+        this.menu.addButton(
             new MenuButton("BACK", function() {
                 saveConfig();
                 gsm.changeState('menu', true);
@@ -237,17 +240,39 @@ function MenuSettingsState() {
     }
 }
 
+function Food(x, y) {
+    this.SIZE = 30;
+    this.x = x;
+    this.y = y;
+
+    this.draw = function() {
+        push();
+        noStroke();
+        fill(255, 0, 0);
+        ellipse(this.x, this.y, this.SIZE, this.SIZE);
+        pop();
+    }
+}
+
 function PlayState() {
     let snake;
     let started;
     let fingerReleased;
     let score = 0;
-    let startTime = performance.now();
+    let startTime;
+    let food;
+
+    this.spawnFood = function() {
+      let x = Math.floor((Math.random() * windowWidth) + 1);
+      let y = Math.floor((Math.random() * windowHeight) + 1);
+      food = new Food(x, y);
+    };
 
     this.init = function(params) {
         snake = new Snake();
         started = false;
         fingerReleased = false;
+        this.spawnFood();
     };
 
     this.draw = function() {
@@ -262,7 +287,13 @@ function PlayState() {
             textAlign(CENTER);
             textSize(32);
             text(score, windowWidth / 2, 50);
-
+            if(collidePointCircle(mouseX, mouseY, food.x, food.y, 50)) {
+                score++;
+                this.spawnFood();
+                bite.play();
+                bite.setVolume(1);
+            }
+            food.draw();
         } else {
             if(mouseIsPressed) {
                 if(fingerReleased) {
@@ -270,6 +301,7 @@ function PlayState() {
                         started = true;
                         soundtrack_cowboy.play();
                         soundtrack_cowboy.setVolume(0.5);
+                        startTime = performance.now();
                     }
                 }
             } else {
@@ -300,6 +332,7 @@ function DeathState() {
 
     this.init = function(params) {
         soundtrack_cowboy_underwater.play();
+        soundtrack_cowboy_underwater.setVolume(1);
         score = params.score;
         duration = params.duration;
         if(score !== 0) {
@@ -371,7 +404,7 @@ function MenuButton(desc, action) {
     const WIDTH = windowWidth * 0.9;
     const HEIGHT = 50;
     const SPACE_HEIGHT = 100;
-    const START_HEIGHT = 100;
+    const START_HEIGHT = 0;
     const FONT_SIZE = 32;
     this.text = desc;
     this.level = -1;
@@ -406,6 +439,75 @@ function MenuButton(desc, action) {
             y: this.getY() - FONT_SIZE / 3 - HEIGHT / 2,
             width: WIDTH,
             height: HEIGHT
+        };
+    };
+}
+
+function Slider(max, defaultValue) {
+    const WIDTH = windowWidth * 0.9;
+    const SLIDER_HEIGHT = 50;
+    const SLIDER_WIDTH = 5;
+    const SPACE_HEIGHT = 100;
+    const START_HEIGHT = 0;
+    const HOLD_WIDTH = 20;
+    let maxValue = max;
+    this.level = -1;
+    this.value = defaultValue;
+    let holding = false;
+
+    this.draw = function(clicked) {
+        push();
+        if(this.value === 255) {
+            config.color.R = 255;
+            config.color.G = 255;
+            config.color.B = 255;
+            stroke(0);
+            fill(0);
+        } else {
+            config.color.R = this.value;
+            config.color.G = 100;
+            config.color.B = 100;
+            stroke(config.color.R, config.color.G, config.color.B);
+            fill(config.color.R, config.color.G, config.color.B);
+        }
+        strokeWeight(5);
+        line(windowWidth / 2 - WIDTH / 2, this.getY() , windowWidth / 2 + WIDTH / 2, this.getY());
+        let slider = this.getSlider();
+        rect(slider.x, slider.y, slider.width, slider.height);
+        if(clicked && collidePointRect(mouseX, mouseY, slider.x, slider.y, slider.width, slider.height)) {
+            holding = true;
+        }
+        pop();
+
+        if(holding) {
+            this.value = ((mouseX - (this.getX() - WIDTH / 2)) / WIDTH) * maxValue;
+            if(this.value < 0) {
+                this.value = 0;
+            } else if(this.value > maxValue) {
+                this.value = maxValue;
+            }
+        }
+        console.log(this.value);
+
+        if(!mouseIsPressed) {
+            holding = false;
+        }
+    };
+
+    this.getY = function() {
+        return START_HEIGHT + this.level * SPACE_HEIGHT - SLIDER_HEIGHT / 3;
+    };
+
+    this.getX = function() {
+        return windowWidth / 2;
+    };
+
+    this.getSlider = function() {
+        return {
+            x: windowWidth / 2 - WIDTH / 2 + WIDTH * (this.value / maxValue),
+            y: this.getY() - SLIDER_HEIGHT / 2,
+            width: SLIDER_WIDTH + HOLD_WIDTH,
+            height: SLIDER_HEIGHT
         };
     };
 }
