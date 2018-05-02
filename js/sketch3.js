@@ -85,8 +85,8 @@ function draw() {
 
 // Snake class
 function Snake() {
-    let segNum = 100;
-    let segLength = 4;
+    let segNum = 5;
+    let segLength = 10;
     let thickness = 10;
     let x = [];
     let y = [];
@@ -132,9 +132,9 @@ function Snake() {
         segNum += count;
     };
 
-    this.incSegLength = function(length = 1) {
+    /*this.incSegLength = function(length = 1) {
         segLength += length;
-    };
+    };*/
 }
 
 function isFullscreen() {
@@ -190,6 +190,12 @@ function MenuState() {
             })
         );
 
+        /*this.menu.addButton(
+            new MenuButton("HIGHSCORES", function() {
+                gsm.changeState('play', true);
+            })
+        );*/
+
         this.menu.addButton(
             new MenuButton("SETTINGS", function() {
                 gsm.changeState('menuSettings', true);
@@ -199,16 +205,6 @@ function MenuState() {
 
     this.draw = function() {
         this.menu.draw();
-        /*if(!mouseIsPressed) {
-            background(0);
-            textSize(32);
-            textAlign(CENTER);
-            fill(255);
-            text('PUT FINGER ON DISPLAY', windowWidth / 2, windowHeight / 2);
-            text('TO PLAY', windowWidth / 2, (windowHeight / 2) + 40);
-        } else {
-            gsm.changeState('play', true);
-        }*/
     }
 }
 
@@ -258,7 +254,7 @@ function PlayState() {
     let snake;
     let started;
     let fingerReleased;
-    let score = 0;
+    let score;
     let startTime;
     let food;
 
@@ -269,6 +265,7 @@ function PlayState() {
     };
 
     this.init = function(params) {
+        score = 0;
         snake = new Snake();
         started = false;
         fingerReleased = false;
@@ -283,6 +280,7 @@ function PlayState() {
             }
 
             background(0);
+            food.draw();
             snake.draw();
             textAlign(CENTER);
             textSize(32);
@@ -292,15 +290,15 @@ function PlayState() {
                 this.spawnFood();
                 bite.play();
                 bite.setVolume(1);
+                snake.incSegNum();
             }
-            food.draw();
         } else {
             if(mouseIsPressed) {
                 if(fingerReleased) {
                     if(collidePointCircle(mouseX, mouseY, windowWidth / 2, windowHeight / 2, 50)) {
                         started = true;
                         soundtrack_cowboy.play();
-                        soundtrack_cowboy.setVolume(0.5);
+                        soundtrack_cowboy.setVolume(0.35);
                         startTime = performance.now();
                     }
                 }
@@ -324,19 +322,32 @@ function PlayState() {
 }
 
 function DeathState() {
-    const TIME_PER_SCORE = 10000;
+    const TIME_PER_SCORE = 3500;
+    const TIME_DEPENDENCY_MULT = 30;
+    const HIGHSCORE_PRINT_LIMIT = 7;
+    const SCOREBOARD_OFFSET = 50;
     let score;
     let duration;
     let finalScore;
-    let rank = 'LOADING';
+    let rank;
+    let released;
+    let isHighscoreSceneActive;
+    let highscores;
+    let last;
+    let self = this;
 
     this.init = function(params) {
+        released = false;
+        rank = 'LOADING';
+        finalScore = 'LOADING';
+        highscores = 'LOADING';
+        isHighscoreSceneActive = false;
         soundtrack_cowboy_underwater.play();
         soundtrack_cowboy_underwater.setVolume(1);
         score = params.score;
         duration = params.duration;
         if(score !== 0) {
-            finalScore = Math.round(TIME_PER_SCORE / (duration / score) * 100) / 100;
+            finalScore = Math.round(((score * 100) + ((TIME_PER_SCORE / (duration / score)  * TIME_DEPENDENCY_MULT))) * 100) / 100;
 
             let jqxhr = $.ajax({
                 url: ADD_HIGHSCORE_URL,
@@ -349,23 +360,96 @@ function DeathState() {
                 success: function(data) {
                     console.log(data);
                     rank = data.rank;
+                    last = data.last;
+                    self.loadHighscores();
                 }
             })
         } else {
             finalScore = 0;
-            rank = 'OUT OF RANGE :(';
+            rank = -1;
+            self.loadHighscores();
         }
-
     };
 
     this.draw = function() {
-        background(0);
-        textAlign(CENTER);
-        textSize(96);
-        fill(255);
-        text(finalScore, windowWidth / 2, 200);
-        textSize(32);
-        text('RANK: ' + rank, windowWidth / 2, 350);
+        if(!mouseIsPressed) {
+            released = true;
+        }
+
+        if(!isHighscoreSceneActive) {
+            background(0);
+            textAlign(CENTER);
+            textSize(96);
+            fill(255);
+            text(finalScore, windowWidth / 2, 200);
+            textSize(32);
+            text('RANK: ' + (rank === -1 ? 'OUT OF RANGE :(' : rank), windowWidth / 2, 350);
+
+            if(this.isClicked()) {
+                isHighscoreSceneActive = true;
+            }
+        } else {
+            if(this.isClicked()) {
+                soundtrack_cowboy_underwater.stop();
+                gsm.changeState('menu', true);
+            }
+
+            background(0);
+            if(highscores !== 'LOADING') {
+                console.log(Math.min(HIGHSCORE_PRINT_LIMIT, last));
+                for(let i = 0; i < highscores.length; i++) {
+                    if(rank === this.getOffset() + i + 1 && rank !== -1) {
+                        fill(255, 0, 0);
+                    } else {
+                        fill(255);
+                    }
+
+                    textAlign(CENTER);
+                    textSize(40);
+                    text('SCOREBOARD',windowWidth / 2, 40 );
+
+                    textAlign(LEFT);
+                    textSize(32);
+                    text((this.getOffset() + i + 1) + '.', 20, (i + 1) * 40 + SCOREBOARD_OFFSET);
+                    text(highscores[i].name, 100, (i + 1) * 40 + SCOREBOARD_OFFSET);
+                    text(parseFloat(Math.round(highscores[i].score * 100) / 100).toFixed(2), windowWidth - 150, (i + 1) * 40 + SCOREBOARD_OFFSET);
+                }
+            }
+        }
+    };
+
+    this.isClicked = function() {
+        if(mouseIsPressed) {
+            if(released) {
+                released = false;
+                return true;
+            }
+        }
+        return false;
+    };
+
+    this.loadHighscores = function() {
+        let jqxhr = $.ajax({
+            url: GET_HIGHSCORE_URL,
+            type: "GET",
+            data: {
+                hash_key: HASH_KEY,
+                limit: HIGHSCORE_PRINT_LIMIT,
+                offset: this.getOffset()
+            },
+            success: function(data) {
+                console.log(data);
+                highscores = data;
+            }
+        })
+    };
+
+    this.getOffset = function() {
+        let offset = 0;
+        if(rank !== -1) {
+            offset = rank - ((HIGHSCORE_PRINT_LIMIT - 1) / 2) - 1;
+        }
+        return Math.max(Math.min(offset, Math.max(last - HIGHSCORE_PRINT_LIMIT, 0)), 0);
     }
 }
 
@@ -511,3 +595,8 @@ function Slider(max, defaultValue) {
         };
     };
 }
+
+String.prototype.trunc = String.prototype.trunc ||
+    function(n){
+        return (this.length > n) ? this.substr(0, n-1) + '&hellip;' : this;
+    };
