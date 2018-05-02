@@ -166,7 +166,7 @@ function GameStateManager() {
     };
 
     this.draw = function() {
-        console.log(this.activeState);
+        //console.log(this.activeState);
         if(this.activeState !== undefined) {
             this.states[this.activeState].draw();
         }
@@ -356,14 +356,19 @@ function DeathState() {
                     hash_key: HASH_KEY,
                     name: config.username,
                     score: finalScore
-                },
-                success: function(data) {
+                }
+                /*success: function(data) {
+                }*/
+            })
+                .done( function(data) {
                     console.log(data);
                     rank = data.rank;
                     last = data.last;
+                })
+                .then( function(data) {
                     self.loadHighscores();
-                }
-            })
+                });
+
         } else {
             finalScore = 0;
             rank = -1;
