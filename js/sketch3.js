@@ -137,6 +137,29 @@ function Snake() {
     };*/
 }
 
+function Enemy(x, y, velX, velY) {
+    this.size = 10;
+    this.x = x;
+    this.y = y;
+    this.velX = velX;
+    this.velY = velY;
+
+    this.draw = function() {
+        this.x += this.velX;
+        this.y += this.velY;
+
+        ellipse(this.x, this.y, this.size, this.size);
+
+        if(this.x > windowWidth || this.x < 0 || this.y < 0 || this.y > windowHeight) {
+            this.randomPos();
+        }
+    };
+
+    this.randomPos = function() {
+
+    };
+}
+
 function isFullscreen() {
     return document.fullscreenElement ||
         document.webkitFullscreenElement ||
@@ -440,7 +463,8 @@ function DeathState() {
             data: {
                 hash_key: HASH_KEY,
                 limit: HIGHSCORE_PRINT_LIMIT,
-                offset: this.getOffset()
+                offset: this.getOffset(),
+                ts: $.now()
             },
             success: function(data) {
                 console.log(data);
