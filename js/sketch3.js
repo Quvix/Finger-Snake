@@ -290,7 +290,7 @@ function Enemy(size) {
 
         fill(255, 255, 0);
         ellipse(this.x, this.y, this.size, this.size);
-        console.log('ENEMY: ' + this.x + ' ' + this.y);
+        //console.log('ENEMY: ' + this.x + ' ' + this.y);
     };
 }
 
@@ -316,8 +316,8 @@ function PlayState() {
             size: 30
         },
         {
-            afterMs: 30000,
-            size: 10
+            afterMs: 30900,
+            size: 100
         }
     ];
     let enemiesSpawnProgress;
@@ -412,8 +412,9 @@ function PlayState() {
     this.trySpawnEnemy = function() {
         if(enemiesSpawnProgress < ENEMIES_SPAWN_PATTERN.length) {
             if(ENEMIES_SPAWN_PATTERN[enemiesSpawnProgress].afterMs <= performance.now() - startTime) {
-                enemiesSpawnProgress++;
+                console.log('spawning enemy #' + enemiesSpawnProgress);
                 enemies.push(new Enemy(ENEMIES_SPAWN_PATTERN[enemiesSpawnProgress].size));
+                enemiesSpawnProgress++;
             }
         }
     };
