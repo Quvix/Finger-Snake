@@ -1,4 +1,4 @@
-const debug = true;
+const debug = false;
 const GET_HIGHSCORE_URL = 'http://highscore.quvix.eu/api/gethighscores';
 const ADD_HIGHSCORE_URL = 'http://highscore.quvix.eu/api/addhighscore';
 const HASH_KEY = 'rF1eNtMvadnpPUXT64OiVlyqDzEfBoH0';
@@ -135,29 +135,16 @@ function Snake() {
     /*this.incSegLength = function(length = 1) {
         segLength += length;
     };*/
-}
 
-function Enemy(x, y, velX, velY) {
-    this.size = 10;
-    this.x = x;
-    this.y = y;
-    this.velX = velX;
-    this.velY = velY;
-
-    this.draw = function() {
-        this.x += this.velX;
-        this.y += this.velY;
-
-        ellipse(this.x, this.y, this.size, this.size);
-
-        if(this.x > windowWidth || this.x < 0 || this.y < 0 || this.y > windowHeight) {
-            this.randomPos();
+    this.intersects = function(cirX, cirY, cirSize) {
+        collided = false;
+        for(let i = 1; i < segNum; i++) {
+            if(collideLineCircle(x[i-1], y[i-1], x[i], y[i], cirX, cirY, cirSize)) {
+                collided = true;
+            }
         }
-    };
-
-    this.randomPos = function() {
-
-    };
+        return collided;
+    }
 }
 
 function isFullscreen() {
@@ -273,6 +260,40 @@ function Food(x, y) {
     }
 }
 
+function Enemy(size) {
+    this.size = size;
+    this.velX = 1;
+    this.velY = 1;
+    this.x = Math.floor(Math.random() * windowWidth);
+    this.y = this.size;
+
+    this.draw = function() {
+        this.x += this.velX;
+        this.y += this.velY;
+
+        if(this.x + this.size / 2 > windowWidth) {
+            this.velX *= -1;
+            this.x = windowWidth - this.size / 2;
+        }
+        if(this.x - this.size / 2 < 0) {
+            this.velX *= -1;
+            this.x = this.size / 2;
+        }
+        if(this.y + this.size / 2 > windowHeight) {
+            this.velY *= -1;
+            this.y = windowHeight - this.size / 2;
+        }
+        if(this.y - this.size / 2 < 0) {
+            this.velY *= -1;
+            this.y = this.size / 2;
+        }
+
+        fill(255, 255, 0);
+        ellipse(this.x, this.y, this.size, this.size);
+        console.log('ENEMY: ' + this.x + ' ' + this.y);
+    };
+}
+
 function PlayState() {
     let snake;
     let started;
@@ -280,6 +301,30 @@ function PlayState() {
     let score;
     let startTime;
     let food;
+    let enemies;
+    const ENEMIES_SPAWN_PATTERN = [
+        {
+            afterMs: 0,
+            size: 15
+        },
+        {
+            afterMs: 5000,
+            size: 20
+        },
+        {
+            afterMs: 15300,
+            size: 30
+        },
+        {
+            afterMs: 30000,
+            size: 10
+        }
+    ];
+    let enemiesSpawnProgress;
+    let accelerated;
+    const ACCELERATE_AT = 15300;
+    const ACCELERATION_MULT = 3;
+
 
     this.spawnFood = function() {
       let x = Math.floor((Math.random() * windowWidth) + 1);
@@ -293,13 +338,15 @@ function PlayState() {
         started = false;
         fingerReleased = false;
         this.spawnFood();
+        enemies = [];
+        enemiesSpawnProgress = 0;
+        accelerated = false;
     };
 
     this.draw = function() {
         if(started) {
             if(!mouseIsPressed) {
-                soundtrack_cowboy.stop();
-                gsm.changeState('deathState', true, {'score': score, 'duration': performance.now() - startTime});
+                this.switchToDeathScreen();
             }
 
             background(0);
@@ -307,6 +354,7 @@ function PlayState() {
             snake.draw();
             textAlign(CENTER);
             textSize(32);
+            fill(255);
             text(score, windowWidth / 2, 50);
             if(collidePointCircle(mouseX, mouseY, food.x, food.y, 50)) {
                 score++;
@@ -314,6 +362,24 @@ function PlayState() {
                 bite.play();
                 bite.setVolume(1);
                 snake.incSegNum();
+            }
+            this.trySpawnEnemy();
+
+            for(let i = 0; i < enemies.length; i++) {
+                enemies[i].draw();
+                if(snake.intersects(enemies[i].x, enemies[i].y, enemies[i].size)) {
+                    console.log('snake died by #' + i);
+                    this.switchToDeathScreen();
+                }
+            }
+
+            if(!accelerated && (performance.now() - startTime) >= ACCELERATE_AT) {
+                accelerated = true;
+
+                for(let i = 0; i < enemies.length; i++) {
+                    enemies[i].velX *= ACCELERATION_MULT;
+                    enemies[i].velY *= ACCELERATION_MULT;
+                }
             }
         } else {
             if(mouseIsPressed) {
@@ -342,6 +408,20 @@ function PlayState() {
         textSize(32);
         text("TO START PUT FINGER HERE", windowWidth / 2, windowHeight / 2 + 100);
     };
+
+    this.trySpawnEnemy = function() {
+        if(enemiesSpawnProgress < ENEMIES_SPAWN_PATTERN.length) {
+            if(ENEMIES_SPAWN_PATTERN[enemiesSpawnProgress].afterMs <= performance.now() - startTime) {
+                enemiesSpawnProgress++;
+                enemies.push(new Enemy(ENEMIES_SPAWN_PATTERN[enemiesSpawnProgress].size));
+            }
+        }
+    };
+
+    this.switchToDeathScreen = function() {
+        soundtrack_cowboy.stop();
+        gsm.changeState('deathState', true, {'score': score, 'duration': performance.now() - startTime});
+    };
 }
 
 function DeathState() {
@@ -366,7 +446,7 @@ function DeathState() {
         highscores = 'LOADING';
         isHighscoreSceneActive = false;
         soundtrack_cowboy_underwater.play();
-        soundtrack_cowboy_underwater.setVolume(1);
+        soundtrack_cowboy_underwater.setVolume(0.8);
         score = params.score;
         duration = params.duration;
         if(score !== 0) {
@@ -395,6 +475,7 @@ function DeathState() {
         } else {
             finalScore = 0;
             rank = -1;
+            last = 1000;
             self.loadHighscores();
         }
     };
@@ -424,18 +505,17 @@ function DeathState() {
 
             background(0);
             if(highscores !== 'LOADING') {
-                console.log(Math.min(HIGHSCORE_PRINT_LIMIT, last));
+                textAlign(CENTER);
+                textSize(40);
+                fill(255);
+                text('SCOREBOARD',windowWidth / 2, 40 );
+
                 for(let i = 0; i < highscores.length; i++) {
                     if(rank === this.getOffset() + i + 1 && rank !== -1) {
                         fill(255, 0, 0);
                     } else {
                         fill(255);
                     }
-
-                    textAlign(CENTER);
-                    textSize(40);
-                    text('SCOREBOARD',windowWidth / 2, 40 );
-
                     textAlign(LEFT);
                     textSize(32);
                     text((this.getOffset() + i + 1) + '.', 20, (i + 1) * 40 + SCOREBOARD_OFFSET);
