@@ -13,6 +13,8 @@ let config = {
 };
 
 let rotateMobileImg;
+let appleImg;
+let tigerImg;
 let gsm = new GameStateManager();
 let soundtrack_cowboy;
 let soundtrack_cowboy_underwater;
@@ -38,6 +40,8 @@ function preload() {
     soundFormats('mp3', 'ogg');
     bite = loadSound('sounds/bite.mp3');
     rotateMobileImg = loadImage('images/rotate.png');
+    appleImg = loadImage('images/apple.png');
+    tigerImg = loadImage('images/tiger.png');
     soundtrack_cowboy = loadSound('sounds/cowboy.mp3');
     soundtrack_cowboy_underwater = loadSound('sounds/cowboy-underwater.mp3');
     loadConfig();
@@ -257,6 +261,8 @@ function Food(x, y) {
         fill(255, 0, 0);
         ellipse(this.x, this.y, this.SIZE, this.SIZE);
         pop();
+        imageMode(CENTER);
+        image(appleImg, this.x, this.y, this.SIZE, this.SIZE);
     }
 }
 
@@ -291,6 +297,8 @@ function Enemy(size) {
         fill(255, 255, 0);
         ellipse(this.x, this.y, this.size, this.size);
         //console.log('ENEMY: ' + this.x + ' ' + this.y);
+        imageMode(CENTER);
+        image(tigerImg, this.x, this.y, this.size, this.size);
     };
 }
 
@@ -304,16 +312,12 @@ function PlayState() {
     let enemies;
     const ENEMIES_SPAWN_PATTERN = [
         {
-            afterMs: 0,
-            size: 15
-        },
-        {
-            afterMs: 5000,
-            size: 20
+            afterMs: 1500,
+            size: 30
         },
         {
             afterMs: 15300,
-            size: 30
+            size: 20
         },
         {
             afterMs: 30900,
@@ -327,8 +331,8 @@ function PlayState() {
 
 
     this.spawnFood = function() {
-      let x = Math.floor((Math.random() * windowWidth) + 1);
-      let y = Math.floor((Math.random() * windowHeight) + 1);
+      let x = Math.floor((Math.random() * (windowWidth - 30)) + 16);
+      let y = Math.floor((Math.random() * (windowHeight - 30)) + 16);
       food = new Food(x, y);
     };
 
